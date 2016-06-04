@@ -39,7 +39,7 @@ int main(int argc, char* argv[]) {
         {
             bool _uint = true;
             bool tester = false;
-            encode(second_arg, _uint,tester);
+            encode(second_arg, _uint, tester);
             decode(second_arg, tester);
         }
         if (third_arg == "-tester"){
@@ -50,15 +50,16 @@ int main(int argc, char* argv[]) {
         }
     }
     if (argc == 4){
-        std::string second_arg;
+        std::string second_arg, third_arg;
+        third_arg = (const char*) argv[2];
         second_arg = (const char*) argv[1];
-        if (argv[2] == "-lines"){
+        if (third_arg == "-lines"){
             bool _uint = false;
             bool tester = true;
             encode(second_arg, _uint, tester);
             decode(second_arg, tester);
         }
-        if (argv[2] == "-uint")
+        if (third_arg == "-uint")
         {
             bool _uint = true;
             bool tester = true;
