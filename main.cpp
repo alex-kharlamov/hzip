@@ -18,8 +18,7 @@ int main(int argc, char* argv[]) {
         } else {
             bool _uint = false;
             bool tester = false;
-            encode(second_arg, _uint, tester);
-            decode(second_arg, tester);
+            encode_tester(second_arg, _uint, tester);
         }
 
 
@@ -32,21 +31,18 @@ int main(int argc, char* argv[]) {
         if (third_arg == "-lines"){
             bool _uint = false;
             bool tester = false;
-            encode(second_arg, _uint, tester);
-            decode(second_arg,tester);
+            encode_tester(second_arg, _uint, tester);
         }
         if (third_arg == "-uint")
         {
             bool _uint = true;
             bool tester = false;
-            encode(second_arg, _uint, tester);
-            decode(second_arg, tester);
+            encode_tester(second_arg, _uint, tester);
         }
         if (third_arg == "-tester"){
             bool tester = true;
             bool _uint = false;
-            encode(second_arg, _uint, tester);
-            decode(second_arg, tester);
+            encode_tester(second_arg, _uint, tester);
         }
     }
     if (argc == 4){
@@ -56,15 +52,13 @@ int main(int argc, char* argv[]) {
         if (third_arg == "-lines"){
             bool _uint = false;
             bool tester = true;
-            encode(second_arg, _uint, tester);
-            decode(second_arg, tester);
+            encode_tester(second_arg, _uint, tester);
         }
         if (third_arg == "-uint")
         {
             bool _uint = true;
             bool tester = true;
-            encode(second_arg,_uint, tester);
-            decode(second_arg, tester);
+            encode_tester(second_arg,_uint, tester);
         }
     }
 }
