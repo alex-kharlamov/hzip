@@ -66,82 +66,9 @@ char pack_byte(bool bits[7]) {
     
 }
 
-void load_file(std::string& s, std::istream& is) {
-    s.erase();
-    if (is.bad()) return;
-    //
-    // attempt to grow string buffer to match file size,
-    // this doesn't always work...
-    s.reserve(is.rdbuf()->in_avail());
-    char c;
-    while (is.get(c)) {
-        // use logarithmic growth stategy, in case
-        // in_avail (above) returned zero:
-        if (s.capacity() == s.size())
-            s.reserve(s.capacity() * 3);
-        s.append(1, c);
-    }
-}
 
-void encode_tester(std::string &inp_file){
+codec_state load_file(std::string& inp_file, bool _uint) {
 
-    std::fstream file(inp_file);
-    unsigned long long file_size = 0;
-    file.seekg(0, std::ios::end);
-    file_size = file.tellg();
-
-    std::fstream file_encoded(inp_file + ".coded");
-    unsigned long long file_encoded_size = 0;
-    file_encoded.seekg (0, std::ios::end);
-    file_encoded_size = file_encoded.tellg();
-    file_encoded.close();
-
-    std::fstream file_dict(inp_file + ".dict");
-    unsigned long long file_dict_size = 0;
-    file_dict.seekg (0, std::ios::end);
-    file_dict_size = file_dict.tellg();
-    file_dict.close();
-
-    std::cout << "Size of file " << std::setprecision(6) << double(file_size) / 1024 / 1024 << " MiB" << std::endl;
-    std::cout << "Size of archived file " << double(file_encoded_size) / 1024 / 1024 << " MiB" << std::endl;
-    double ratio = (1 - (double((file_encoded_size + file_dict_size))/double(file_size))) * 100;
-    std::cout << "Compression ratio is " <<  ratio << "%" << std::endl;
-    
-
-    std::fstream file_output(inp_file);
-    unsigned long long file_output_size = 0;
-    file_output.seekg(0, std::ios::end);
-    file_output_size = file_output.tellg();
-
-
-    if (file_output_size != file_size){
-        std::cout << "size of output doesn't correct!" << std::endl;
-    } else {
-        unsigned long long counter = 0;
-
-        while (!file.eof())
-        {
-            std::string inp, outp;
-            std::getline(file, inp);
-            std::getline(file_output, outp);
-
-            if (inp != outp){
-                counter += 1;
-            }
-        }
-
-        std::cout<< "we have " << counter << "  mistakes" << std::endl;
-        if (counter == 0){
-            std::cout << "All done!" << std::endl;
-        }
-    }
-    file.close();
-    file_output.close();
-
-}
-
-void encode(std::string &inp_file, bool _uint, bool tester) {
-    unsigned long long buff_out_size = 11000000;
     std::vector<std::string> dictionary(258, "");
     unsigned long start_time = clock();
 
@@ -201,11 +128,45 @@ void encode(std::string &inp_file, bool _uint, bool tester) {
     //std::cout << buffer << std::endl;
     
     unsigned long long length = buffer.length();
-        
+
+    codec_state state;
+    state.records = records;
+    state.buffer = buffer;
+
+    return state;
+}
+
+
+void save(std::vector<std::string> &dictionary, std::string &inp_file, codec_state &state){
+    std::ofstream fout(inp_file + ".dict");
+    unsigned long long counter = 0;
+    
+    for (int i = 0; i < dictionary.size(); ++i) {
+        if (dictionary[i] != "") {
+            counter++;
+        }
+    }
+    
+    
+    fout << counter << std::endl;
+    fout << state.records << std::endl;
+
+    for (int i = 0; i < dictionary.size(); ++i) {
+        if (dictionary[i] != "") {
+            fout << char(i - 128) << " " << dictionary[i] << std::endl;
+        }
+    }
+    
+    fout.close();
+}
+
+std::vector<std::string> learn(codec_state &state, std::string &inp_file, bool tester){
+
+    std::vector<std::string> dictionary(258, "");    
     std::vector<int> dict(256, 0);
     
-    for (unsigned long long i = 0; i < length; ++i) {
-        dict[int(static_cast<unsigned char> (buffer[i]))] += 1;
+    for (unsigned long long i = 0; i < state.buffer.length(); ++i) {
+        dict[int(static_cast<unsigned char> (state.buffer[i]))] += 1;
     }
     
     std::priority_queue<ver, std::vector<ver>, ver> qu;
@@ -258,41 +219,34 @@ void encode(std::string &inp_file, bool _uint, bool tester) {
     if (tester){
         std::cout << "build model of dict " << (dic - init) / (double)CLOCKS_PER_SEC << std::endl;
     }
-    std::ofstream fout(inp_file + ".dict");
-    unsigned long long counter = 0;
-    
-    for (int i = 0; i < dictionary.size(); ++i) {
-        if (dictionary[i] != "") {
-            counter++;
-        }
-    }
-    
-    
-    fout << counter << std::endl;
-    fout << records << std::endl;
 
-    for (int i = 0; i < dictionary.size(); ++i) {
-        if (dictionary[i] != "") {
-            fout << char(i - 128) << " " << dictionary[i] << std::endl;
-        }
+    for (auto elem : destroy){
+        delete elem;
     }
-    
-    fout.close();
-    
+
+
+    save(dictionary, inp_file, state);
+
+    return dictionary;
+
+}
+
+void encode(codec_state &state, bool _uint, bool tester, std::vector<std::string> &dictionary, std::string &inp_file) {
+    unsigned long long buff_out_size = 11000000;
     unsigned long builddict = clock();
     
     std::ofstream codeout(inp_file + ".coded");
     
     int j = -1;
     std::string buff = "";
-    buff.reserve(length);
+    buff.reserve(state.buffer.length());
     bool bits[8];
     
-    for (unsigned long long i = 0; i < length; ++i) {
+    for (unsigned long long i = 0; i < state.buffer.length(); ++i) {
         //codeout << dictionary[int(buffer[i]) + 128];
         // попробуем без упаковки
         //std::cout << dictionary[int(buffer[i]) + 128] << " ";
-        for (auto elem : dictionary[int(buffer[i]) + 128]) {
+        for (auto elem : dictionary[int(state.buffer[i]) + 128]) {
             
             j += 1;
             bits[j] = bool(elem - '0');
@@ -325,23 +279,18 @@ void encode(std::string &inp_file, bool _uint, bool tester) {
 
     if (tester) {
         std::cout << "encoding done in " << (clock() - builddict) / (double)CLOCKS_PER_SEC << std::endl;
-        std::cout << std::setprecision(15) <<  "encode: records per second : " << records / ((clock() - builddict) / (double)CLOCKS_PER_SEC) << std::endl;
-    }
-
-    for (auto elem : destroy){
-        delete elem;
-    }
-    if (tester){
-        encode_tester(inp_file);
+        std::cout << std::setprecision(15) <<  "encode: records per second : " << state.records / ((clock() - builddict) / (double)CLOCKS_PER_SEC) << std::endl;
     }
     
     
 }
 
-
 void decode(std::string &inp_file, bool tester) {
-    std::vector<decode_huf_ver*> destroy;
     unsigned long long buff_out_size = 11000000;
+
+
+
+    std::vector<decode_huf_ver*> destroy;
     unsigned long start = clock();
     std::ifstream dicin(inp_file + ".dict");
     std::string n;
@@ -426,6 +375,10 @@ void decode(std::string &inp_file, bool tester) {
     
     dicin.close();
     //std::cout << "nya" << std::endl;
+
+
+
+    
     std::string temp_coded = ".coded";
     std::string inp_file_coded = inp_file + temp_coded;
     const char *fileName(inp_file_coded.c_str());
@@ -564,4 +517,72 @@ void decode(std::string &inp_file, bool tester) {
     for (auto elem : destroy){
         delete elem;
     }
+}
+
+
+
+
+void encode_tester(std::string &inp_file, bool _uint, bool tester){
+
+    codec_state state = load_file(inp_file, _uint);
+
+    std::vector<std::string> dictionary = learn(state, inp_file, tester);
+
+    encode(state, _uint, tester, dictionary, inp_file);
+    decode(inp_file, tester);
+    
+
+    std::fstream file(inp_file);
+    unsigned long long file_size = 0;
+    file.seekg(0, std::ios::end);
+    file_size = file.tellg();
+
+    std::fstream file_encoded(inp_file + ".coded");
+    unsigned long long file_encoded_size = 0;
+    file_encoded.seekg (0, std::ios::end);
+    file_encoded_size = file_encoded.tellg();
+    file_encoded.close();
+
+    std::fstream file_dict(inp_file + ".dict");
+    unsigned long long file_dict_size = 0;
+    file_dict.seekg (0, std::ios::end);
+    file_dict_size = file_dict.tellg();
+    file_dict.close();
+
+    std::cout << "Size of file " << std::setprecision(6) << double(file_size) / 1024 / 1024 << " MiB" << std::endl;
+    std::cout << "Size of archived file " << double(file_encoded_size) / 1024 / 1024 << " MiB" << std::endl;
+    double ratio = (1 - (double((file_encoded_size + file_dict_size))/double(file_size))) * 100;
+    std::cout << "Compression ratio is " <<  ratio << "%" << std::endl;
+    
+
+    std::fstream file_output(inp_file);
+    unsigned long long file_output_size = 0;
+    file_output.seekg(0, std::ios::end);
+    file_output_size = file_output.tellg();
+
+
+    if (file_output_size != file_size){
+        std::cout << "size of output doesn't correct!" << std::endl;
+    } else {
+        unsigned long long counter = 0;
+
+        while (!file.eof())
+        {
+            std::string inp, outp;
+            std::getline(file, inp);
+            std::getline(file_output, outp);
+
+            if (inp != outp){
+                counter += 1;
+            }
+        }
+
+        std::cout<< "we have " << counter << "  mistakes" << std::endl;
+        if (counter == 0){
+            std::cout << "All done!" << std::endl;
+        }
+    }
+    file.close();
+    file_output.close();
+
 }
