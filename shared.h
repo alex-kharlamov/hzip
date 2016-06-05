@@ -21,6 +21,12 @@
 #include <experimental/string_view>
 #endif
 
+struct codec_state
+{
+    std::string buffer;
+    unsigned long long records;
+};
+
 struct ver {
     char letter;
     const ver *leftson, *rightson;
@@ -39,17 +45,21 @@ struct decode_huf_ver {
     bool used = false;
 };
 
+void save(std::vector<std::string> &, std::string &, codec_state &);
+
 void build_dict(ver const &, std::string, std::vector<std::string> &);
 
 std::string dec_to_bin(int);
 
 char pack_byte(bool bits[7]);
 
-void load_file(std::string &, std::istream &);
+codec_state load_file(std::string& , bool );
 
-void encode_tester(std::string &);
+std::vector<std::string> learn(codec_state &, std::string &, bool );
 
-void encode(std::string &, bool, bool);
+void encode_tester(std::string &, bool, bool);
+
+void encode(codec_state &, bool, bool, std::vector<std::string> &, std::string &);
 
 
 void decode(std::string &, bool);
