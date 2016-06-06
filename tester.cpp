@@ -174,7 +174,6 @@ void tester(std::string &inp_file, bool _uint, bool test) {
     decode(decode_state, buffer, test, decode_out);
     
     decode_save(inp_file, decode_out);
-    std::cout << "nya";
 
     //decode end
 
