@@ -1,4 +1,4 @@
-#include "shared.h"
+#include "tester.h"
 
 int main(int argc, char* argv[]) {
     if (argc == 1) {
