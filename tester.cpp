@@ -243,20 +243,5 @@ void tester(std::string &inp_file, bool _uint, bool test) {
     file.close();
     file_output.close();
 
-    /*
-    codec_state test_state;
-    std::cout << "nya";
-    std::string in_test = load_file(inp_file, _uint, test_state);
-    std::string out_test;
-    std::cout << "nya";
-    load_dict(inp_file, test_state);
-    encode(test_state, _uint, test,in_test, out_test);
-
-    if (out_test == read_encoded(inp_file)){
-        std::cout << "Test <load(save(e)).encode(x) = e.encode(x)> passed" << std::endl;
-    } else {
-        std::cout << "Test failed" << std::endl;
-    }
-    */
 
 }
