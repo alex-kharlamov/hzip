@@ -45,6 +45,13 @@ struct decode_huf_ver {
     bool used = false;
 };
 
+struct dict_state{
+    std::vector<decode_huf_ver*> destroy;
+    decode_huf_ver root;
+};
+
+void decode_save(std::string &, std::string &);
+
 void save(std::vector<std::string> &, std::string &, codec_state &);
 
 void build_dict(ver const &, std::string, std::vector<std::string> &);
@@ -55,11 +62,18 @@ char pack_byte(bool bits[7]);
 
 codec_state load_file(std::string& , bool );
 
+void decode_save(std::string &, std::string &);
+
 std::vector<std::string> learn(codec_state &, std::string &, bool );
 
-void encode_tester(std::string &, bool, bool);
+void encode_save(std::string &, std::string &);
+
+void tester(std::string &, bool, bool);
+
+dict_state load_dict(std::string &);
 
 std::string encode(codec_state &, bool, bool, std::vector<std::string> &, std::string &);
 
+std::string read_encoded(std::string &);
 
-void decode(std::string &, bool);
+std::string decode(std::string &, bool, dict_state &, std::string &);
