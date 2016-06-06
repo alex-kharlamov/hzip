@@ -59,7 +59,7 @@ std::vector<std::string> learn(codec_state &, std::string &, bool );
 
 void encode_tester(std::string &, bool, bool);
 
-void encode(codec_state &, bool, bool, std::vector<std::string> &, std::string &);
+std::string encode(codec_state &, bool, bool, std::vector<std::string> &, std::string &);
 
 
 void decode(std::string &, bool);
