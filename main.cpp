@@ -17,8 +17,8 @@ int main(int argc, char* argv[]) {
             std::cout << "You can add -tester to show debug info" << std::endl;
         } else {
             bool _uint = false;
-            bool tester = false;
-            encode_tester(second_arg, _uint, tester);
+            bool test = false;
+            tester(second_arg, _uint, test);
         }
 
 
@@ -30,19 +30,19 @@ int main(int argc, char* argv[]) {
         third_arg = (const char*) argv[2];
         if (third_arg == "-lines"){
             bool _uint = false;
-            bool tester = false;
-            encode_tester(second_arg, _uint, tester);
+            bool test = false;
+            tester(second_arg, _uint, test);
         }
         if (third_arg == "-uint")
         {
             bool _uint = true;
-            bool tester = false;
-            encode_tester(second_arg, _uint, tester);
+            bool test = false;
+            tester(second_arg, _uint, test);
         }
         if (third_arg == "-tester"){
-            bool tester = true;
+            bool test = true;
             bool _uint = false;
-            encode_tester(second_arg, _uint, tester);
+            tester(second_arg, _uint, test);
         }
     }
     if (argc == 4){
@@ -51,14 +51,14 @@ int main(int argc, char* argv[]) {
         second_arg = (const char*) argv[1];
         if (third_arg == "-lines"){
             bool _uint = false;
-            bool tester = true;
-            encode_tester(second_arg, _uint, tester);
+            bool test = true;
+            tester(second_arg, _uint, test);
         }
         if (third_arg == "-uint")
         {
             bool _uint = true;
-            bool tester = true;
-            encode_tester(second_arg,_uint, tester);
+            bool test = true;
+            tester(second_arg,_uint, test);
         }
     }
 }
