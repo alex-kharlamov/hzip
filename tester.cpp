@@ -177,24 +177,24 @@ void tester(std::string &inp_file, bool _uint, bool test) {
 
 
     std::fstream file(inp_file);
-    double file_size = 0;
+    unsigned long long file_size = 0;
     file.seekg(0, std::ios::end);
     file_size = file.tellg();
 
     std::fstream file_encoded(inp_file + ".coded");
-    double file_encoded_size = 0;
+    unsigned long long file_encoded_size = 0;
     file_encoded.seekg (0, std::ios::end);
     file_encoded_size = file_encoded.tellg();
     file_encoded.close();
 
     std::fstream file_dict(inp_file + ".dict");
-    double file_dict_size = 0;
+    unsigned long long file_dict_size = 0;
     file_dict.seekg (0, std::ios::end);
     file_dict_size = file_dict.tellg();
     file_dict.close();
 
-    std::cout << "Size of file " << std::setprecision(6) << double(file_size) / 1024 / 1024 << " MiB" << std::endl;
-    std::cout << "Size of archived file " << double(file_encoded_size) / 1024 / 1024 << " MiB" << std::endl;
+    std::cout << "Size of file " << std::setprecision(6) << double(file_size) / double(1024) / double(1024) << " MiB" << std::endl;
+    std::cout << "Size of archived file " << double(file_encoded_size) / double(1024) / double(1024) << " MiB" << std::endl;
     double ratio = (1 - (double((file_encoded_size + file_dict_size))/double(file_size))) * 100;
     std::cout << "Compression ratio is " <<  ratio << "%" << std::endl;
     
