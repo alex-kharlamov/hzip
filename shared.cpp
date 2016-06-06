@@ -7,6 +7,7 @@
 //
 
 //std::vector<std::string> dictionary(258, "");
+
 #include "shared.h"
 
 void build_dict(ver const &v, std::string str, std::vector<std::string> &dictionary) {
@@ -149,7 +150,6 @@ void save(std::vector<std::string> &dictionary, std::string &inp_file, codec_sta
     
     
     fout << counter << std::endl;
-    fout << state.records << std::endl;
 
     for (int i = 0; i < dictionary.size(); ++i) {
         if (dictionary[i] != "") {
@@ -231,11 +231,12 @@ std::vector<std::string> learn(codec_state &state, std::string &inp_file, bool t
 
 }
 
-void encode(codec_state &state, bool _uint, bool tester, std::vector<std::string> &dictionary, std::string &inp_file) {
+std::string encode(codec_state &state, bool _uint, bool tester, std::vector<std::string> &dictionary, std::string &inp_file) {
     unsigned long long buff_out_size = 11000000;
     unsigned long builddict = clock();
     
-    std::ofstream codeout(inp_file + ".coded");
+    std::string codeout = "";
+    codeout.reserve(state.buffer.length() * 8);
     
     int j = -1;
     std::string buff = "";
@@ -255,7 +256,7 @@ void encode(codec_state &state, bool _uint, bool tester, std::vector<std::string
             if (j == 7) {
                 buff += pack_byte(bits);
                 if (buff.length() > buff_out_size) {
-                    codeout << buff;
+                    codeout += buff;
                     buff = "";
                 }
                 j = -1;
@@ -268,36 +269,38 @@ void encode(codec_state &state, bool _uint, bool tester, std::vector<std::string
     //delete[] buffer;
     
     
-    codeout << buff;
+    codeout += buff;
     for (int i = 0; i < j + 1; ++i) {
-        codeout << bits[i];
+        codeout += std::to_string(bits[i]);
     }
-    codeout << j + 1;
+    codeout += std::to_string(j + 1);
     //std::cout << buff;
     
-    codeout.close();
+    
 
     if (tester) {
         std::cout << "encoding done in " << (clock() - builddict) / (double)CLOCKS_PER_SEC << std::endl;
         std::cout << std::setprecision(15) <<  "encode: records per second : " << state.records / ((clock() - builddict) / (double)CLOCKS_PER_SEC) << std::endl;
     }
-    
+                    
+                    
+    return codeout;
     
 }
+                    void encode_save(std::string &buffer, std::string &inp_file){
+                        std::ofstream codeout(inp_file + ".coded");
+                        codeout << buffer;
+                        codeout.close();
+                    }
 
 void decode(std::string &inp_file, bool tester) {
-    unsigned long long buff_out_size = 11000000;
-
-
-
     std::vector<decode_huf_ver*> destroy;
+    unsigned long long buff_out_size = 11000000;
     unsigned long start = clock();
     std::ifstream dicin(inp_file + ".dict");
     std::string n;
     std::getline(dicin, n);
-    std::string records;
-    std::getline(dicin, records);
-    //std::cout << std::stoi(n) << std::endl;
+    
     std::map<std::string, char> dict;
     decode_huf_ver root;
     root.leftson = &root;
@@ -367,7 +370,7 @@ void decode(std::string &inp_file, bool tester) {
                 
             }
         }
-
+        
         
         //std::cout << let << " " << str << " " <<  str.length() <<  std::endl;
     }
@@ -375,10 +378,6 @@ void decode(std::string &inp_file, bool tester) {
     
     dicin.close();
     //std::cout << "nya" << std::endl;
-
-
-
-    
     std::string temp_coded = ".coded";
     std::string inp_file_coded = inp_file + temp_coded;
     const char *fileName(inp_file_coded.c_str());
@@ -417,7 +416,7 @@ void decode(std::string &inp_file, bool tester) {
     }
     
     unsigned long pure_decode = clock();
-
+    
     for (unsigned long long i = 0; i < length - buffer[length - 1] + '0' - 1; ++i) {
         //std::cout << buffer[i] << " " << int(buffer[i]) << std::endl;
         //mem += dec_to_bin(int(buffer[i]));
@@ -456,10 +455,10 @@ void decode(std::string &inp_file, bool tester) {
                 
                 j += 1;
             }
-        
-        j = 0;
-        mem = "";
-        
+            
+            j = 0;
+            mem = "";
+            
         }
     }
     
@@ -468,44 +467,46 @@ void decode(std::string &inp_file, bool tester) {
         
         
     }
-    unsigned long memorised = clock();
-    if (tester){
-        std::cout << "decode done in " << (memorised - pure_decode) / (double)CLOCKS_PER_SEC << std::endl;
-    }
-    if (tester) {
-        std::cout << std::setprecision(10) <<  "decode: records per second " << std::stoi(records) / ((memorised - pure_decode) / (double)CLOCKS_PER_SEC) << std::endl;
-    }
-
+    
     while (j < mem.length()) {
-            if (mem[j] == '1') {
-                    temp = temp->rightson;
-                
-                    if (temp->used == true) {
-                        buff += temp->letter;
-                        if (buff.length() > buff_out_size ) {
-                            out << buff;
-                            buff = "";
-                        }
-                        temp = &root;
-                   
+        if (mem[j] == '1') {
+            temp = temp->rightson;
+            
+            if (temp->used == true) {
+                buff += temp->letter;
+                if (buff.length() > buff_out_size ) {
+                    out << buff;
+                    buff = "";
                 }
-            } else {
-                    temp = temp->leftson;
+                temp = &root;
                 
-                    if (temp->used == true) {
-                        buff += temp->letter;
-                        if (buff.length() > buff_out_size ) {
-                            out << buff;
-                            buff = "";
-                        }
-                        temp = &root;
-                    
-                }
             }
+        } else {
+            temp = temp->leftson;
+            
+            if (temp->used == true) {
+                buff += temp->letter;
+                if (buff.length() > buff_out_size ) {
+                    out << buff;
+                    buff = "";
+                }
+                temp = &root;
+                
+            }
+        }
         
         j += 1;
     }
     
+    unsigned long memorised = clock();
+    if (tester){
+        std::cout << "decode done in " << (memorised - pure_decode) / (double)CLOCKS_PER_SEC << std::endl;
+    }
+    /*
+    if (tester) {
+        std::cout << std::setprecision(10) <<  "decode: records per second " << std::stoi(records) / ((memorised - pure_decode) / (double)CLOCKS_PER_SEC) << std::endl;
+    }*/
+
     unsigned long outbuff = clock();
     //std::cout << "outbufing " << (outbuff - memorised) / (double)CLOCKS_PER_SEC << std::endl;
     
@@ -520,31 +521,32 @@ void decode(std::string &inp_file, bool tester) {
 }
 
 
-
-
 void encode_tester(std::string &inp_file, bool _uint, bool tester){
 
     codec_state state = load_file(inp_file, _uint);
 
     std::vector<std::string> dictionary = learn(state, inp_file, tester);
 
-    encode(state, _uint, tester, dictionary, inp_file);
+    std::string buffer = encode(state, _uint, tester, dictionary, inp_file);
+    
+    encode_save(buffer, inp_file);
+    
     decode(inp_file, tester);
     
 
     std::fstream file(inp_file);
-    unsigned long long file_size = 0;
+    double file_size = 0;
     file.seekg(0, std::ios::end);
     file_size = file.tellg();
 
     std::fstream file_encoded(inp_file + ".coded");
-    unsigned long long file_encoded_size = 0;
+    double file_encoded_size = 0;
     file_encoded.seekg (0, std::ios::end);
     file_encoded_size = file_encoded.tellg();
     file_encoded.close();
 
     std::fstream file_dict(inp_file + ".dict");
-    unsigned long long file_dict_size = 0;
+    double file_dict_size = 0;
     file_dict.seekg (0, std::ios::end);
     file_dict_size = file_dict.tellg();
     file_dict.close();
