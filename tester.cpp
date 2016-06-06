@@ -66,6 +66,7 @@ std::string load_file(std::string &inp_file, bool _uint, codec_state &state) {
     state.records = records;
 
     return buffer;
+    file.close();
 }
 
 void load_dict(std::string &inp_file, codec_state &state){
@@ -126,6 +127,7 @@ std::string read_encoded(std::string &inp_file){
     file.seekg(0);
     buffer.resize(len);
     file.read((char*)buffer.data(), len);
+    file.close();
     return buffer; 
 }
 
@@ -172,9 +174,9 @@ void tester(std::string &inp_file, bool _uint, bool test) {
     decode(decode_state, buffer, test, decode_out);
     
     decode_save(inp_file, decode_out);
+    std::cout << "nya";
 
     //decode end
-
 
     std::fstream file(inp_file);
     unsigned long long file_size = 0;
@@ -226,7 +228,36 @@ void tester(std::string &inp_file, bool _uint, bool test) {
             std::cout << "All done!" << std::endl;
         }
     }
+    std::cout << std::endl;
+
+    std::string in_test = load_file(inp_file, _uint, state);
+    std::string out_test;
+    load_dict(inp_file, state);
+    encode(state, _uint, !test, in_test, out_test);
+
+    if (out_test == read_encoded(inp_file)){
+        std::cout << "Test <load(save(e)).encode(x) = e.encode(x)> passed" << std::endl;
+    } else {
+        std::cout << "Test failed" << std::endl;
+    }
+
     file.close();
     file_output.close();
+
+    /*
+    codec_state test_state;
+    std::cout << "nya";
+    std::string in_test = load_file(inp_file, _uint, test_state);
+    std::string out_test;
+    std::cout << "nya";
+    load_dict(inp_file, test_state);
+    encode(test_state, _uint, test,in_test, out_test);
+
+    if (out_test == read_encoded(inp_file)){
+        std::cout << "Test <load(save(e)).encode(x) = e.encode(x)> passed" << std::endl;
+    } else {
+        std::cout << "Test failed" << std::endl;
+    }
+    */
 
 }

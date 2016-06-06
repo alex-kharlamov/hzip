@@ -315,6 +315,7 @@ void decode(codec_state &state, std::string &buffer, bool tester, std::string &o
         delete elem;
     }
 }
+
 void create_dict(codec_state &state) {
     std::vector<decode_huf_ver*> destroy;
     unsigned long long buff_out_size = 11000000;
