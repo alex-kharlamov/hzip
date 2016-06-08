@@ -4,7 +4,6 @@
 std::string load_file(std::string &inp_file, bool _uint, codec_state &state) {
 
     std::vector<std::string> dictionary(258, "");
-    unsigned long start_time = clock();
 
     unsigned long long records = 0;
 
@@ -35,13 +34,7 @@ std::string load_file(std::string &inp_file, bool _uint, codec_state &state) {
         file.seekg(0, file.end);
         unsigned long long file_length = file.tellg();
         file.seekg(0, file.beg);
-        /*
-        char * buffer = new char[length];
-        
-        // read data as a block:
-        file.read(buffer, length);
-         
-        */
+
         
         buffer.reserve(file_length);
         
@@ -56,17 +49,14 @@ std::string load_file(std::string &inp_file, bool _uint, codec_state &state) {
         buffer.erase(buffer.length() - 1, 1);
     }
 
-    //file.close();
-
-
-    //std::cout << buffer << std::endl;
     
     unsigned long long length = buffer.length();
 
     state.records = records;
 
-    return buffer;
+
     file.close();
+    return buffer;
 }
 
 void load_dict(std::string &inp_file, codec_state &state){
@@ -145,16 +135,21 @@ void tester(std::string &inp_file, bool _uint, bool test) {
     codec_state state;
 
     std::string in = load_file(inp_file, _uint, state);
-
-    learn(state, test, in);
-
+    auto time = clock();
+    learn(state, in);
+    if (test) {
+        std::cout << "Learn in: " << (clock() - time) / (double) CLOCKS_PER_SEC << std::endl;
+    }
     save_dict(inp_file, state);
 
     std::string out;
-
-    encode(state, _uint, test, in, out);
-    
+    time = clock();
+    encode(state,in, out);
+    if (test) {
+        std::cout << "Encode ended in: " << (clock() - time) / (double) CLOCKS_PER_SEC << std::endl;
+    }
     encode_save(out, inp_file);
+
     out.shrink_to_fit();
 
     //encode end
@@ -168,80 +163,79 @@ void tester(std::string &inp_file, bool _uint, bool test) {
     load_dict(inp_file, decode_state);
 
     create_dict(decode_state);
-    
+
     buffer = read_encoded(inp_file);
-    
-    decode(decode_state, buffer, test, decode_out);
-    
+    time = clock();
+    decode(decode_state, buffer, decode_out);
+    if (test) {
+        std::cout << "Decode ended in: " << (clock() - time) / (double) CLOCKS_PER_SEC << std::endl;
+    }
     decode_save(inp_file, decode_out);
 
     //decode end
 
-    std::fstream file(inp_file);
-    unsigned long long file_size = 0;
-    file.seekg(0, std::ios::end);
-    file_size = file.tellg();
+    if (test) {
 
-    std::fstream file_encoded(inp_file + ".coded");
-    unsigned long long file_encoded_size = 0;
-    file_encoded.seekg (0, std::ios::end);
-    file_encoded_size = file_encoded.tellg();
-    file_encoded.close();
+        std::fstream file(inp_file);
+        file.seekg(0, std::ios::end);
+        auto file_size = file.tellg();
 
-    std::fstream file_dict(inp_file + ".dict");
-    unsigned long long file_dict_size = 0;
-    file_dict.seekg (0, std::ios::end);
-    file_dict_size = file_dict.tellg();
-    file_dict.close();
+        std::fstream file_encoded(inp_file + ".coded");
+        file_encoded.seekg(0, std::ios::end);
+        auto file_encoded_size = file_encoded.tellg();
+        file_encoded.close();
 
-    std::cout << "Size of file " << std::setprecision(6) << double(file_size) / double(1024) / double(1024) << " MiB" << std::endl;
-    std::cout << "Size of archived file " << double(file_encoded_size) / double(1024) / double(1024) << " MiB" << std::endl;
-    double ratio = (1 - (double((file_encoded_size + file_dict_size))/double(file_size))) * 100;
-    std::cout << "Compression ratio is " <<  ratio << "%" << std::endl;
-    
+        std::fstream file_dict(inp_file + ".dict");
+        file_dict.seekg(0, std::ios::end);
+        auto file_dict_size = file_dict.tellg();
+        file_dict.close();
 
-    std::fstream file_output(inp_file);
-    unsigned long long file_output_size = 0;
-    file_output.seekg(0, std::ios::end);
-    file_output_size = file_output.tellg();
+        std::cout << "Size of file " << std::setprecision(6) << double(file_size) / 1024 / 1024 << " MiB" << std::endl;
+        std::cout << "Size of archived file " << double(file_encoded_size) / 1024 / 1024 << " MiB" << std::endl;
+        double ratio = (1 - (double((file_encoded_size + file_dict_size)) / double(file_size))) * 100;
+        std::cout << "Compression ratio is " << ratio << "%" << std::endl;
 
 
-    if (file_output_size != file_size){
-        std::cout << "size of output doesn't correct!" << std::endl;
-    } else {
-        unsigned long long counter = 0;
+        std::fstream file_output(inp_file);
+        file_output.seekg(0, std::ios::end);
+        auto file_output_size = file_output.tellg();
 
-        while (!file.eof())
-        {
-            std::string inp, outp;
-            std::getline(file, inp);
-            std::getline(file_output, outp);
 
-            if (inp != outp){
-                counter += 1;
+        if (file_output_size != file_size) {
+            std::cout << "size of output doesn't correct!" << std::endl;
+        } else {
+            unsigned long long counter = 0;
+
+            while (!file.eof()) {
+                std::string inp, outp;
+                std::getline(file, inp);
+                std::getline(file_output, outp);
+
+                if (inp != outp) {
+                    counter += 1;
+                }
+            }
+
+            std::cout << "we have " << counter << "  mistakes" << std::endl;
+            if (counter == 0) {
+                std::cout << "All done!" << std::endl;
             }
         }
+        std::cout << std::endl;
 
-        std::cout<< "we have " << counter << "  mistakes" << std::endl;
-        if (counter == 0){
-            std::cout << "All done!" << std::endl;
+        std::string in_test = load_file(inp_file, _uint, state);
+        std::string out_test;
+        load_dict(inp_file, state);
+        encode(state, in_test, out_test);
+
+        if (out_test == read_encoded(inp_file)) {
+            std::cout << "Test <load(save(e)).encode(x) = e.encode(x)> passed" << std::endl;
+        } else {
+            std::cout << "Test failed" << std::endl;
         }
+
+        file.close();
+        file_output.close();
     }
-    std::cout << std::endl;
-
-    std::string in_test = load_file(inp_file, _uint, state);
-    std::string out_test;
-    load_dict(inp_file, state);
-    encode(state, _uint, !test, in_test, out_test);
-
-    if (out_test == read_encoded(inp_file)){
-        std::cout << "Test <load(save(e)).encode(x) = e.encode(x)> passed" << std::endl;
-    } else {
-        std::cout << "Test failed" << std::endl;
-    }
-
-    file.close();
-    file_output.close();
-
 
 }

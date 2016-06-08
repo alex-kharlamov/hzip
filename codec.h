@@ -35,7 +35,7 @@ struct ver {
 struct decode_huf_ver {
     char letter;
     decode_huf_ver *leftson, *rightson;
-    decode_huf_ver* myself;
+    decode_huf_ver *myself;
     bool used = false;
 };
 
@@ -43,12 +43,11 @@ struct codec_state
 {
     unsigned long long records;
     std::vector<decode_huf_ver*> destroy;
-    decode_huf_ver root;
+    decode_huf_ver *root;
     std::vector<std::string> dictionary;
     std::vector<std::pair<char,std::string>> dict_mem;
 
 };
-
 
 
 void build_dict(ver const &, std::string, std::vector<std::string> &);
@@ -57,15 +56,10 @@ std::string dec_to_bin(int);
 
 char pack_byte(bool bits[7]);
 
-
-
-
-
-void learn(codec_state &, bool, std::string &);
+void learn(codec_state &, std::string &);
 
 void create_dict(codec_state &);
 
+void encode(const codec_state &, const std::string &, std::string &);
 
-void encode(codec_state &, bool, bool, std::string &, std::string &);
-
-void decode(codec_state &, std::string &, bool, std::string &);
+void decode(const codec_state & ,const std::string &, std::string &);
