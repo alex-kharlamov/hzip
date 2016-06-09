@@ -56,7 +56,8 @@ std::string dec_to_bin(int);
 
 char pack_byte(bool bits[7]);
 
-void learn(codec_state &, const std::string &);
+void learn(codec_state &, const std::vector<std::string> &);
+void learn_str(codec_state &state, const std::string &in);
 
 void create_dict(codec_state &);
 

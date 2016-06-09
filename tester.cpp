@@ -1,7 +1,56 @@
 #include "tester.h"
 
 
-std::string load_file(std::string &inp_file, bool _uint, codec_state &state) {
+std::vector<std::string> load_file(std::string &inp_file, bool _uint, codec_state &state) {
+    std::vector<std::string> recs;
+    std::vector<std::string> dictionary(258, "");
+
+    unsigned long long records = 0;
+
+    std::ifstream file(inp_file);
+
+    if (_uint){
+        while (!file.eof()){
+            std::string temp_str;
+            uint32_t temp = 0;
+            file.read(reinterpret_cast<char*>(&temp), sizeof(temp));
+            temp_str.resize(temp);
+            file.read(const_cast<char*>(temp_str.data()), temp);
+
+            recs.push_back(temp_str);
+
+            //std::cout << temp_str << std::endl;
+
+            records += 1;
+
+        }
+
+    } else {
+            
+        // get length of file:
+        file.seekg(0, file.end);
+        unsigned long long file_length = file.tellg();
+        file.seekg(0, file.beg);
+        
+        std::string s;
+        
+        while (!file.eof())
+        {
+            std::getline(file, s);
+            recs.push_back(s);
+            records += 1;
+        }
+    }
+
+
+    state.records = records;
+
+
+    file.close();
+    return recs;
+}
+
+std::string load_file_str(std::string &inp_file, bool _uint, codec_state &state) {
 
     std::vector<std::string> dictionary(258, "");
 
@@ -29,17 +78,17 @@ std::string load_file(std::string &inp_file, bool _uint, codec_state &state) {
         buffer.erase(buffer.length() - 1, 1);
 
     } else {
-            
+
         // get length of file:
         file.seekg(0, file.end);
         unsigned long long file_length = file.tellg();
         file.seekg(0, file.beg);
 
-        
+
         buffer.reserve(file_length);
-        
+
         std::string s;
-        
+
         while (!file.eof())
         {
             std::getline(file, s);
@@ -49,7 +98,7 @@ std::string load_file(std::string &inp_file, bool _uint, codec_state &state) {
         buffer.erase(buffer.length() - 1, 1);
     }
 
-    
+
     unsigned long long length = buffer.length();
 
     state.records = records;
@@ -58,6 +107,7 @@ std::string load_file(std::string &inp_file, bool _uint, codec_state &state) {
     file.close();
     return buffer;
 }
+
 
 void load_dict(std::string &inp_file, codec_state &state){
     std::ifstream dicin(inp_file + ".dict");
@@ -127,26 +177,25 @@ void decode_save(std::string &inp_file, std::string &buffer){
     output.close();
 }
 
-
-void tester(std::string &inp_file, bool _uint, bool test) {
+void tester_file(std::string &inp_file, bool _uint, bool test) {
 
     //encode start
 
     codec_state state;
 
-    std::string in = load_file(inp_file, _uint, state);
+    std::string in = load_file_str(inp_file, _uint, state);
     auto time = clock();
-    learn(state, in);
-    if (test) {
-        std::cout << "Learn in: " << (clock() - time) / (double) CLOCKS_PER_SEC << std::endl;
+    learn_str(state, in);
+    if (_uint){
+        std::cout << "Learn ended in: " <<(clock() - time)/(double) CLOCKS_PER_SEC << std::endl;
     }
     save_dict(inp_file, state);
 
     std::string out;
     time = clock();
-    encode(state,in, out);
+    encode(state, in, out);
     if (test) {
-        std::cout << "Encode ended in: " << (clock() - time) / (double) CLOCKS_PER_SEC << std::endl;
+        std::cout << "Encode of file ended in: " << (clock() - time) / (double) CLOCKS_PER_SEC << std::endl;
     }
     encode_save(out, inp_file);
 
@@ -154,7 +203,7 @@ void tester(std::string &inp_file, bool _uint, bool test) {
 
     //encode end
 
-    
+
 
     //decode start
     std::string buffer, decode_out;
@@ -168,7 +217,7 @@ void tester(std::string &inp_file, bool _uint, bool test) {
     time = clock();
     decode(decode_state, buffer, decode_out);
     if (test) {
-        std::cout << "Decode ended in: " << (clock() - time) / (double) CLOCKS_PER_SEC << std::endl;
+        std::cout << "Decode of file ended in: " << (clock() - time) / (double) CLOCKS_PER_SEC << std::endl;
     }
     decode_save(inp_file, decode_out);
 
@@ -223,7 +272,7 @@ void tester(std::string &inp_file, bool _uint, bool test) {
         }
         std::cout << std::endl;
 
-        std::string in_test = load_file(inp_file, _uint, state);
+        std::string in_test = load_file_str(inp_file, _uint, state);
         std::string out_test;
         load_dict(inp_file, state);
         encode(state, in_test, out_test);
@@ -234,8 +283,78 @@ void tester(std::string &inp_file, bool _uint, bool test) {
             std::cout << "Test failed" << std::endl;
         }
 
+
         file.close();
         file_output.close();
     }
-
+    for (auto elem: state.destroy){
+        delete elem;
+    }
+    for (auto elem: decode_state.destroy){
+        delete elem;
+    }
 }
+
+void tester(std::string &inp_file, bool _uint, bool test) {
+    if (_uint){
+        tester_file(inp_file,_uint,test);
+    } else {
+
+        codec_state state;
+
+        std::vector<std::string> in = load_file(inp_file, _uint, state);
+        clock_t time = clock();
+        learn(state, in);
+        clock_t temp_time = clock();
+        if (test) {
+            std::cout << "Learn in: " << (temp_time - time) / (double) CLOCKS_PER_SEC << std::endl;
+        }
+        save_dict(inp_file, state);
+        load_dict(inp_file, state);
+        create_dict(state);
+
+        clock_t enc_time = 0;
+        clock_t dec_time = 0;
+        long long fails = 0;
+        size_t file_size = 0;
+        size_t enc_size = 0;
+        for (auto rec : in) {
+            file_size += rec.size();
+            std::string enc_str = "";
+
+            time = clock();
+            encode(state, rec, enc_str);
+            temp_time = clock();
+            enc_time += temp_time - time;
+            enc_size += enc_str.size();
+
+            std::string dec_str = "";
+            dec_str.reserve(enc_str.length() * 2);
+            time = clock();
+            decode(state, enc_str, dec_str);
+            temp_time = clock();
+            dec_time += temp_time - time;
+
+            if (dec_str != rec) {
+                fails++;
+            }
+
+        }
+
+        if (test) {
+            std::cout << "Encode per records ended in: " << enc_time / (double) CLOCKS_PER_SEC << std::endl;
+            std::cout << "Decode per records ended in: " << dec_time / (double) CLOCKS_PER_SEC << std::endl;
+            std::cout << "We have " << fails << "  mistakes" << std::endl;
+            if (fails == 0) {
+                std::cout << "All done!" << std::endl << std::endl;
+            }
+            if (!_uint) {
+                tester_file(inp_file, _uint, test);
+            }
+        }
+        for (auto elem : state.destroy){
+            delete elem;
+        }
+    }
+}
+

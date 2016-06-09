@@ -65,15 +65,79 @@ char pack_byte(bool bits[7]) {
     
 }
 
+void learn_str(codec_state &state, const std::string &in){
+    std::vector<std::string> dictionary(258, "");
+    std::vector<int> dict(256, 0);
 
-void learn(codec_state &state, const std::string &buffer){
+
+    for (unsigned long long i = 0; i < in.length(); ++i) {
+        dict[int(static_cast<unsigned char> (in[i]))] += 1;
+    }
+
+    std::priority_queue<ver, std::vector<ver>, ver> qu;
+
+    std::vector<std::pair<int, char>> chardict;
+    for (int i = 0; i < 256; ++i) {
+        if (dict[i] > 0) {
+            chardict.push_back(std::make_pair(dict[i], char(i)));
+        }
+    }
+
+    std::sort(chardict.begin(), chardict.end());
+    std::vector<ver*> destroy;
+
+    for (int i = 0; i < chardict.size(); ++i) { //vertex init
+        ver* temp = new ver;
+        temp->myself = temp;
+        temp->counter = chardict[i].first;
+        temp->letter = chardict[i].second;
+        temp->leftson = nullptr;
+        temp->rightson = nullptr;
+        temp->letterused = true;
+        qu.push(*temp);
+        destroy.push_back(temp);
+
+    }
+
+
+    while (qu.size() > 1) { //build tree
+        const ver* left;
+        const ver* right;
+        left = qu.top().myself;
+        qu.pop();
+        right = qu.top().myself;
+        qu.pop();
+        ver* newver = new ver;
+        newver->myself = newver;
+        newver->leftson = left;
+        newver->rightson = right;
+        newver->counter = left->counter + right->counter;
+        qu.push(*newver);
+        destroy.push_back(newver);
+    }
+
+
+    build_dict(qu.top(), "", dictionary); //making dict
+
+
+    for (auto elem : destroy){
+        delete elem;
+    }
+
+    state.dictionary = dictionary;
+
+}
+
+
+void learn(codec_state &state, const std::vector<std::string> &in){
     std::vector<std::string> dictionary(258, "");    
     std::vector<int> dict(256, 0);
-    
-    for (unsigned long long i = 0; i < buffer.length(); ++i) {
-        dict[int(static_cast<unsigned char> (buffer[i]))] += 1;
+
+    for (auto elem : in) {
+        for (unsigned long long i = 0; i < elem.length(); ++i) {
+            dict[int(static_cast<unsigned char> (elem[i]))] += 1;
+        }
     }
-    
     std::priority_queue<ver, std::vector<ver>, ver> qu;
     
     std::vector<std::pair<int, char>> chardict;
@@ -153,10 +217,10 @@ void encode(const codec_state &state, const std::string &buffer, std::string &co
 
 
 void decode(const codec_state &state, const std::string &buffer, std::string &out) {
-    unsigned long long buff_out_size = 11000000;
+    unsigned long long buff_out_size = 1100;
     std::string mem = "";
-    mem.reserve(buff_out_size * 10 + 1);
-    out.reserve(buffer.length() * 2);
+    mem.reserve(buffer.length());
+
     decode_huf_ver *temp;
     temp = state.root;
     unsigned long long j = 0;
@@ -174,7 +238,7 @@ void decode(const codec_state &state, const std::string &buffer, std::string &ou
 
         mem += dec_to_str_vec[(256 + buffer[i]) % 256];
         
-        if (mem.length() > buff_out_size * 10) {
+        if (mem.length() > buff_out_size) {
             while (j < mem.length()) {
                 if (mem[j] == '1') {
                     temp = temp->rightson;
@@ -219,10 +283,6 @@ void decode(const codec_state &state, const std::string &buffer, std::string &ou
         }
         
         j += 1;
-    }
-
-    for (auto elem : state.destroy){
-        delete elem;
     }
 
 }
