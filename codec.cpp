@@ -66,7 +66,7 @@ char pack_byte(bool bits[7]) {
 }
 
 
-void learn(codec_state &state, std::string &buffer){
+void learn(codec_state &state, const std::string &buffer){
     std::vector<std::string> dictionary(258, "");    
     std::vector<int> dict(256, 0);
     
